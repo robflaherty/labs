@@ -4,8 +4,17 @@
     <link href="main.css" rel="stylesheet" type="text/css"/> 
     <title>chartbeat big board</title>
     <script src="main-compiled.js"></script>
+    <script>
+      var bbSettings = {
+        'container'   : 'content',
+        'site'        : 'avc.com',
+        'apiKey'      : '4686932395757034b8e2c5f5f4ffb853',
+        'pageFilter'  : '',
+        'titleFilter' : '^A VC:'
+      };
+    </script>
   </head>
-  <body onload="init('content', 'avc.com', '4686932395757034b8e2c5f5f4ffb853')">
+  <body onload="init(bbSettings)">
     <div id="content">
     </div>
   </body>

@@ -5,8 +5,17 @@
     <title>TEST: chartbeat big board</title>
     <script src="closure-library/closure/goog/base.js"></script>
     <script src="main.js"></script>
+    <script>
+      var bbSettings = {
+        'container'   : 'content',
+        'site'        : 'avc.com',
+        'apiKey'      : '4686932395757034b8e2c5f5f4ffb853',
+        'pageFilter'  : '',
+        'titleFilter' : '^A VC:'
+      };
+    </script>
   </head>
-  <body onload="init('content', 'avc.com', '4686932395757034b8e2c5f5f4ffb853')">
+  <body onload="init(bbSettings)">
     <div id="content">
     </div>
   </body>

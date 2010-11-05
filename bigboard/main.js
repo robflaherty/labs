@@ -193,10 +193,11 @@ demo.widget.Page.prototype.dispose_ = function() {
  * @param {string} host Hostname to show top pages for.
  * @param {string} apiKey API key to use.
  * @param {string=} regexp Regular expression of paths to ignore.
+ * @param {string=} filter Regular expression of title pattern to remove.
  * 
  * @constructor
  */
-demo.widget.Toppages = function(element, host, apiKey, regexp) {
+demo.widget.Toppages = function(element, host, apiKey, regexp, filter) {
   /**
    * @type {Element}
    * @private
@@ -220,6 +221,12 @@ demo.widget.Toppages = function(element, host, apiKey, regexp) {
    * @private
    */
   this.ignoreExpr_ = regexp ? new RegExp(regexp) : null;
+
+  /**
+   * @type {?RegExp}
+   * @private
+   */
+  this.filter_ = filter ? new RegExp(filter) : null;
 
   /**
    * Dictionary of currently shown pages
@@ -356,8 +363,17 @@ demo.widget.Toppages.prototype.onData_ = function(data) {
      * @type {demo.widget.Page}
      */
     var el = this.pages_[page["path"]];
+    
+    //Remove site Title
+    var title;
+    if (this.filter_) {
+      title = page["i"].replace(this.filter_, "");
+    } else {
+      title = page["i"];
+    }
+    
     if (!el) {
-      el = new demo.widget.Page(this.host_, page["path"], page["i"], page["visitors"],  ypos);
+      el = new demo.widget.Page(this.host_, page["path"], title, page["visitors"],  ypos);
       goog.dom.appendChild(this.element_, el.getElement());
       el.fadeIn();
     } else {
@@ -384,18 +400,21 @@ demo.widget.Toppages.prototype.onData_ = function(data) {
 /**
  * Initializes the widget, and generally kicks off things on the page.
  *
- * @param {string|Element} element Element to show the widget in.
- * @param {string} host Hostname to show top pages for.
- * @param {string} apiKey API key to use.
- * @param {string=} regexp Regular expression of paths to ignore.
+ * @param {Object} settings init settings
  */
-function init(element, host, apiKey, regexp) {
+function init(settings) {
+  settings['container'] = (typeof settings['container'] == 'undefined') ? 0 : settings['container'];
+  settings['site'] = (typeof settings['site'] == 'undefined') ? 0 : settings['site'];
+  settings['apiKey'] = (typeof settings['apiKey'] == 'undefined') ? 0 : settings['apiKey'];
+  settings['pageFilter'] = (typeof settings['pageFilter'] == 'undefined') ? 0 : settings['pageFilter'];
+  settings['titleFilter'] = (typeof settings['titleFilter'] == 'undefined') ? 0 : settings['titleFilter'];
+  
   var params = goog.global.location && goog.global.location.search;
   if (params && goog.string.startsWith(params, "?host=")) {
-    host = params.substring(6);
+    settings['site'] = params.substring(6);
   }
 
-  var widget = new demo.widget.Toppages(element, host, apiKey, regexp);
+  var widget = new demo.widget.Toppages(settings['container'], settings['site'], settings['apiKey'], settings['pageFilter'], settings['titleFilter']);
   widget.start();
 }
 
