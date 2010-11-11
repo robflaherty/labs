@@ -12,8 +12,10 @@ goog.require('goog.dom');
 goog.require('goog.events');
 goog.require('goog.events.Event');
 goog.require('goog.net.Jsonp');
+goog.require('goog.style');
 goog.require('goog.Timer');
 goog.require('goog.Uri');
+goog.require('goog.uri.utils');
 
 
 /**
@@ -26,10 +28,11 @@ goog.require('goog.Uri');
  * @param {string|Element} element Element to render the widget in.
  * @param {string} host Hostname to show data for.
  * @param {string} apiKey API key to use.
+ * @param {boolean} streetView Enable streetview?
  * 
  * @constructor
  */
-labs.widget.Map = function(element, host, apiKey) {
+labs.widget.Map = function(element, host, apiKey, streetView) {
   /**
    * @type {Element}
    * @private
@@ -41,6 +44,13 @@ labs.widget.Map = function(element, host, apiKey) {
    * @private
    */
   this.host_ = host;
+
+  /**
+   * Show street view too
+   * @type {boolean}
+   * @private
+   */
+  this.streetView_ = streetView;
 
   /**
    * @type {string}
@@ -70,6 +80,11 @@ labs.widget.Map = function(element, host, apiKey) {
    */
   this.numPages_ = 10;
 
+  if (this.streetView_) {
+    this.updateInterval_ = 60000;
+    this.numPages_ = 4;
+  }
+
   this.initMap_();
 };
 
@@ -88,10 +103,37 @@ labs.widget.Map.prototype.initMap_ = function() {
   };
 
   /**
-   * @type {Object}
+   * @type {google.maps.Map}
    * @private
    */
   this.map_ = new google.maps.Map(this.element_, options);
+
+  if (!this.streetView_) {
+    return;
+  }
+
+  // Add StreetView
+  var panoramaOptions = {
+    pov: {
+      heading: 34,
+      pitch: 1,
+      zoom: 1
+    }
+  };
+
+  var panoNode = document.getElementById("pano");
+  goog.style.showElement(panoNode, true);
+  goog.style.setHeight(panoNode, "50%");
+  goog.style.setHeight(this.element_, "50%");
+
+
+  /**
+   * @type {google.maps.StreetViewPanorama}
+   * @private
+   */
+  this.panorama_ = new google.maps.StreetViewPanorama(panoNode,
+                                                      panoramaOptions);
+  this.map_.setStreetView(this.panorama_);
 };
 
 
@@ -199,8 +241,12 @@ labs.widget.Map.prototype.showMarker_ = function(entry, delay, infoRemoveDelay, 
                                                 content: content.join('')
                                               });
   goog.Timer.callOnce(function() {
+                        console.log("marker: " + pos);
                         marker.setMap(this.map_);
                         infoWindow.open(this.map_, marker);
+                        if (this.streetView_) {
+                          this.panorama_.setPosition(pos);
+                        }
                       }, delay, this);
   goog.Timer.callOnce(function() {
                         infoWindow.close();
@@ -227,7 +273,7 @@ labs.widget.Map.prototype.onData_ = function(data) {
 
   var removeDelay = this.updateInterval_ * 3;
   var delta = Math.floor(this.updateInterval_ / this.numPages_);
-  var delay = delta;
+  var delay = 0;
   for (var i = data.length - 1; i >= 0 ; --i) {
     var entry = data[i];
     if (entry['utc'] <= this.lastSeen_) {
@@ -248,12 +294,24 @@ labs.widget.Map.prototype.onData_ = function(data) {
  * @param {string} apiKey API key to use.
  */
 function init(element, host, apiKey) {
+  var streetView = false;
   var params = goog.global.location && goog.global.location.search;
-  if (params && goog.string.startsWith(params, '?host=')) {
-    host = params.substring(6);
+  if (params) {
+    var val = goog.uri.utils.getParamValue(params, 'host');
+    if (val) {
+      host = val;
+    }
+    val = goog.uri.utils.getParamValue(params, 'streetview');
+    if (val && val == "1") {
+      streetView = true;
+    }
+    val = goog.uri.utils.getParamValue(params, 'apikey');
+    if (val) {
+      apiKey = val;
+    }
   }
 
-  var widget = new labs.widget.Map(element, host, apiKey);
+  var widget = new labs.widget.Map(element, host, apiKey, streetView);
   widget.start();
 }
 
